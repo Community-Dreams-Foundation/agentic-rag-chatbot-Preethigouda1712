@@ -1,22 +1,25 @@
 #!/usr/bin/env bash
 set -euo pipefail
 
-echo "== Proximal Energy Sanity Check =="
+echo "== Agentic RAG Chatbot - Sanity Check =="
 
 rm -rf artifacts
 mkdir -p artifacts
 
-echo "Running: make sanity"
-make sanity
+echo "Running: python3 chatbot.py sanity"
+python3 chatbot.py sanity
 
 OUT="artifacts/sanity_output.json"
 if [[ ! -f "$OUT" ]]; then
   echo "ERROR: Missing $OUT"
-  echo "Your 'make sanity' must generate: artifacts/sanity_output.json"
+  echo "Your sanity check must generate: artifacts/sanity_output.json"
   exit 1
 fi
 
+echo "Verifying output format..."
 python3 scripts/verify_output.py "$OUT"
+
+echo "✓ Sanity check passed!"
 
 echo "OK: sanity check passed"
 

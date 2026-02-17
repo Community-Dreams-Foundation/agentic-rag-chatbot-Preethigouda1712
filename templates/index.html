@@ -1,0 +1,83 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>RAG Chatbot - Document Q&A</title>
+    <link rel="stylesheet" href="{{ url_for('static', filename='style.css') }}">
+</head>
+<body>
+    <div class="container">
+        <div class="sidebar">
+            <div class="logo">
+                <h2>🤖 RAG Chatbot</h2>
+                <p>Document Q&A with Citations</p>
+            </div>
+
+            <div class="upload-section">
+                <h3>📄 Upload Documents</h3>
+                <div class="file-input-wrapper">
+                    <input type="file" id="fileInput" multiple accept=".txt,.md">
+                    <button id="uploadBtn" class="btn btn-primary">Upload</button>
+                </div>
+                <div id="uploadStatus"></div>
+            </div>
+
+            <div class="status-section">
+                <h3>📊 Index Status</h3>
+                <div id="statusInfo">Loading...</div>
+            </div>
+
+            <div class="memory-section">
+                <h3>💾 Memory</h3>
+                <button id="memoryBtn" class="btn btn-secondary">View Memory</button>
+            </div>
+
+            <div class="action-section">
+                <button id="clearBtn" class="btn btn-danger">Clear Index</button>
+            </div>
+        </div>
+
+        <div class="main-content">
+            <div class="chat-section">
+                <h1>Ask Questions About Your Documents</h1>
+                
+                <div id="chatMessages" class="chat-messages"></div>
+
+                <div class="input-area">
+                    <input 
+                        type="text" 
+                        id="questionInput" 
+                        placeholder="Ask a question about your documents..."
+                        autocomplete="off"
+                    >
+                    <button id="askBtn" class="btn btn-primary">Ask</button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Memory Modal -->
+    <div id="memoryModal" class="modal">
+        <div class="modal-content">
+            <span class="close">&times;</span>
+            <h2>Memory Files</h2>
+            
+            <div class="memory-tabs">
+                <button class="tab-btn active" data-tab="user">User Memory</button>
+                <button class="tab-btn" data-tab="company">Company Memory</button>
+            </div>
+
+            <div id="userMemory" class="tab-content active">
+                <pre id="userMemoryContent">Loading...</pre>
+            </div>
+
+            <div id="companyMemory" class="tab-content">
+                <pre id="companyMemoryContent">Loading...</pre>
+            </div>
+        </div>
+    </div>
+
+    <script src="{{ url_for('static', filename='script.js') }}"></script>
+</body>
+</html>

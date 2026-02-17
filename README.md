@@ -46,9 +46,9 @@ You may implement one feature or multiple. Partial implementations are acceptabl
 ---
 
 ## Participant Info (Required)
-- Full Name:
-- Email:
-- GitHub Username:
+- Full Name: [Your Name]
+- Email: [Your Email]
+- GitHub Username: [Your GitHub Username]
 
 ---
 
@@ -161,7 +161,7 @@ Add your video link here:
 
 ## Video Walkthrough
 
-PASTE YOUR LINK HERE
+[Add your video walkthrough link here - e.g., YouTube, Loom, or similar]
 
 ## 4) Important
 Submissions missing the Participant Info block may be deprioritized during review.
@@ -241,15 +241,89 @@ These are optional enhancements. They are not required, but can earn bonus point
 
 ## Quick Start (YOU MUST FILL THIS IN)
 
-Provide exact commands a judge can run.
+### Prerequisites
+- Python 3.8+
+- OpenAI API key (get from https://platform.openai.com/api-keys)
 
-Example (replace with your real commands):
+### Installation & Usage
 
-```text
-# install dependencies
-# run the app
-# open UI or run CLI
+```bash
+# 1. Install dependencies
+make install
+
+# 2. Set your OpenAI API key
+export OPENAI_API_KEY="your-api-key-here"
+
+# 3. Run the interactive chatbot
+python chatbot.py
+
+# Inside the chatbot, use these commands:
+add sample_docs/sample_document.txt    # Add a file to index
+ask What is RAG?                       # Ask a question
+status                                 # Show indexing status
+help                                   # Show available commands
+exit                                   # Exit chatbot
+
+# Alternative: Run sanity check (for evaluation)
+make sanity
 ```
+
+### What Happens
+
+1. **Installation:** Downloads OpenAI SDK, FAISS, and other dependencies
+2. **Indexing:** When you `add` a file, it's automatically:
+   - Split into chunks
+   - Embedded using OpenAI's embedding model
+   - Indexed using FAISS for fast retrieval
+3. **Q&A:** When you `ask` a question:
+   - Your question is embedded
+   - Most relevant chunks are retrieved from FAISS
+   - GPT-3.5-turbo generates an answer grounded in those chunks
+   - Citations are shown with relevance scores
+4. **Memory:** Important insights are automatically extracted and saved to:
+   - `USER_MEMORY.md` - User-specific facts
+   - `COMPANY_MEMORY.md` - Org-wide learnings
+
+### Example Walkthrough
+
+```
+$ python chatbot.py
+
+chatbot> add sample_docs/sample_document.txt
+✓ Successfully added 8 chunks from sample_document.txt
+
+chatbot> ask What is RAG?
+Searching...
+
+Answer:
+RAG (Retrieval-Augmented Generation) is a technique that enhances language 
+models by incorporating external knowledge sources...
+
+Citations:
+  [1] sample_document.txt (relevance: 0.95)
+      RAG is a technique that enhances large language models...
+```
+
+### Testing
+
+```bash
+# Run sanity check (generates artifacts/sanity_output.json)
+python chatbot.py sanity
+
+# Or via Make
+make sanity
+```
+
+### Troubleshooting
+
+**"OPENAI_API_KEY not set"**
+- Set your API key: `export OPENAI_API_KEY="sk-..."`
+
+**"No documents indexed"**
+- Add documents first using the `add` command
+
+**Slow first query**
+- First embedding generation takes time; subsequent queries are faster
 
 ---
 
