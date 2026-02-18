@@ -7,6 +7,7 @@ import json
 from pathlib import Path
 from typing import List, Dict, Tuple, Optional
 import pickle
+from pypdf import PdfReader
 
 import google.genai as genai
 import faiss
@@ -51,48 +52,76 @@ class DocumentIngestor:
         self.chunk_size = chunk_size
         self.overlap = overlap
     
-    def ingest_text(self, text: str, source: str) -> List[Document]:
-        """Ingest a text document and return chunks."""
+    def _chunk_text(self, text: str) -> List[str]:
+        """
+        Improved chunking with overlap using sliding window.
+        Works better than simple \n\n splitting.
+        """
         chunks = []
-        chunk_id = 0
-        
-        # Split by sections first (rough approach)
-        sections = text.split('\n\n')
-        current_chunk = ""
-        
-        for section in sections:
-            if len(current_chunk) + len(section) < self.chunk_size:
-                current_chunk += section + "\n\n"
-            else:
-                if current_chunk.strip():
-                    chunks.append(Document(
-                        content=current_chunk.strip(),
-                        source=source,
-                        chunk_id=chunk_id,
-                        page=None
-                    ))
-                    chunk_id += 1
-                current_chunk = section
-        
-        # Add remaining chunk
-        if current_chunk.strip():
+        start = 0
+        text_length = len(text)
+
+        while start < text_length:
+            end = start + self.chunk_size
+            chunk = text[start:end]
+            chunks.append(chunk.strip())
+
+            start += self.chunk_size - self.overlap
+
+        return [c for c in chunks if c]
+
+    def ingest_text(self, text: str, source: str, page: Optional[str] = None,
+                    starting_chunk_id: int = 0) -> List[Document]:
+        """Ingest raw text and return chunked Documents."""
+        chunks = []
+        text_chunks = self._chunk_text(text)
+
+        for i, chunk in enumerate(text_chunks):
             chunks.append(Document(
-                content=current_chunk.strip(),
+                content=chunk,
                 source=source,
-                chunk_id=chunk_id,
-                page=None
+                chunk_id=starting_chunk_id + i,
+                page=page
             ))
-        
+
         return chunks
-    
+
     def ingest_file(self, file_path: str) -> List[Document]:
-        """Load and chunk a file."""
+        """Load and chunk a file with page-aware PDF support."""
         file_path = Path(file_path)
-        
+
+        # ---------- TEXT / MARKDOWN ----------
         if file_path.suffix in ['.txt', '.md']:
             with open(file_path, 'r', encoding='utf-8') as f:
                 text = f.read()
+
             return self.ingest_text(text, str(file_path.name))
+
+        # ---------- PDF SUPPORT ----------
+        elif file_path.suffix == '.pdf':
+            reader = PdfReader(str(file_path))
+            documents = []
+            chunk_id = 0
+
+            for page_number, page in enumerate(reader.pages, start=1):
+                page_text = page.extract_text()
+
+                # Skip empty or scanned pages
+                if not page_text or not page_text.strip():
+                    continue
+
+                page_chunks = self.ingest_text(
+                    text=page_text,
+                    source=str(file_path.name),
+                    page=str(page_number),
+                    starting_chunk_id=chunk_id
+                )
+
+                documents.extend(page_chunks)
+                chunk_id += len(page_chunks)
+
+            return documents
+
         else:
             raise ValueError(f"Unsupported file type: {file_path.suffix}")
 

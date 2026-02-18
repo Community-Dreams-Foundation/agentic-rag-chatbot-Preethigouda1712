@@ -1,5 +1,5 @@
 // Initialize page
-document.addEventListener('DOMContentLoaded', function() {
+document.addEventListener('DOMContentLoaded', function () {
     loadStatus();
     setupEventListeners();
     loadStatus();
@@ -40,7 +40,7 @@ async function loadStatus() {
     try {
         const response = await fetch('/api/status');
         const data = await response.json();
-        
+
         const statusInfo = document.getElementById('statusInfo');
         statusInfo.innerHTML = `
             <div><strong>Documents:</strong> ${data.total_documents}</div>
@@ -56,7 +56,7 @@ async function loadStatus() {
 async function uploadFile() {
     const fileInput = document.getElementById('fileInput');
     const files = fileInput.files;
-    
+
     if (files.length === 0) {
         alert('Please select a file');
         return;
@@ -81,7 +81,7 @@ async function uploadFile() {
                 statusDiv.textContent = `✓ ${data.message}`;
                 fileInput.value = '';
                 loadStatus();
-                
+
                 // Clear status after 3 seconds
                 setTimeout(() => statusDiv.textContent = '', 3000);
             } else {
@@ -124,7 +124,7 @@ async function askQuestion() {
 
             // Add answer
             const answerHTML = `
-                <div class="answer">${escapeHtml(data.answer)}</div>
+                <div class="answer">${escapeHtml(data.answer.trim())}</div>
                 ${data.citations.length > 0 ? `
                     <div class="citations">
                         <h4>📖 Sources</h4>
@@ -138,7 +138,11 @@ async function askQuestion() {
                     </div>
                 ` : ''}
             `;
-            addMessage('bot', answerHTML);
+            const botMessageId = addMessage('bot', answerHTML);
+
+            // Scroll to the top of the bot message
+            const botElement = document.getElementById(botMessageId);
+            botElement.scrollIntoView({ behavior: "smooth", block: "start" });
         } else {
             document.getElementById(loadingId).remove();
             addMessage('bot', `<div style="color: #e74c3c;">Error: ${data.error}</div>`);
@@ -156,17 +160,18 @@ function addMessage(sender, content) {
     const messageId = 'msg-' + Date.now();
     messageDiv.id = messageId;
     messageDiv.className = `message message-${sender}`;
-    
+
     const contentDiv = document.createElement('div');
     contentDiv.className = 'message-content';
     contentDiv.innerHTML = content;
-    
+
     messageDiv.appendChild(contentDiv);
     chatMessages.appendChild(messageDiv);
-    
+
     // Scroll to bottom
-    chatMessages.scrollTop = chatMessages.scrollHeight;
-    
+    if (sender === 'user') {
+        chatMessages.scrollTop = chatMessages.scrollHeight;
+    }
     return messageId;
 }
 

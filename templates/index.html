@@ -1,11 +1,13 @@
 <!DOCTYPE html>
 <html lang="en">
+
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>RAG Chatbot - Document Q&A</title>
     <link rel="stylesheet" href="{{ url_for('static', filename='style.css') }}">
 </head>
+
 <body>
     <div class="container">
         <div class="sidebar">
@@ -17,7 +19,7 @@
             <div class="upload-section">
                 <h3>📄 Upload Documents</h3>
                 <div class="file-input-wrapper">
-                    <input type="file" id="fileInput" multiple accept=".txt,.md">
+                    <input type="file" id="fileInput" multiple accept=".txt,.md,.pdf">
                     <button id="uploadBtn" class="btn btn-primary">Upload</button>
                 </div>
                 <div id="uploadStatus"></div>
@@ -41,16 +43,12 @@
         <div class="main-content">
             <div class="chat-section">
                 <h1>Ask Questions About Your Documents</h1>
-                
+
                 <div id="chatMessages" class="chat-messages"></div>
 
                 <div class="input-area">
-                    <input 
-                        type="text" 
-                        id="questionInput" 
-                        placeholder="Ask a question about your documents..."
-                        autocomplete="off"
-                    >
+                    <input type="text" id="questionInput" placeholder="Ask a question about your documents..."
+                        autocomplete="off">
                     <button id="askBtn" class="btn btn-primary">Ask</button>
                 </div>
             </div>
@@ -62,7 +60,7 @@
         <div class="modal-content">
             <span class="close">&times;</span>
             <h2>Memory Files</h2>
-            
+
             <div class="memory-tabs">
                 <button class="tab-btn active" data-tab="user">User Memory</button>
                 <button class="tab-btn" data-tab="company">Company Memory</button>
@@ -80,4 +78,5 @@
 
     <script src="{{ url_for('static', filename='script.js') }}"></script>
 </body>
+
 </html>
