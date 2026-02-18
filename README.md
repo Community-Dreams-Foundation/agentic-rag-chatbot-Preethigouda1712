@@ -243,7 +243,18 @@ These are optional enhancements. They are not required, but can earn bonus point
 
 ### Prerequisites
 - Python 3.8+
-- OpenAI API key (get from https://platform.openai.com/api-keys)
+- Google Gemini API key (get from https://aistudio.google.com/api-keys)
+
+### Setup - Environment Variables (.env)
+
+Copy `.env.example` to `.env` and paste your Google API key:
+
+```bash
+cp .env.example .env
+```
+
+- Edit .env and add your API key to GOOGLE_API_KEY
+
 
 ### Installation & Usage
 
@@ -251,10 +262,7 @@ These are optional enhancements. They are not required, but can earn bonus point
 # 1. Install dependencies
 make install
 
-# 2. Set your OpenAI API key
-export OPENAI_API_KEY="your-api-key-here"
-
-# 3. Run the interactive chatbot
+# 2. Run the interactive chatbot
 python chatbot.py
 
 # Inside the chatbot, use these commands:
@@ -266,14 +274,19 @@ exit                                   # Exit chatbot
 
 # Alternative: Run sanity check (for evaluation)
 make sanity
+
+# Or run Flask web app
+python app.py
+
+# Then open http://localhost:5000 in your browser
 ```
 
 ### What Happens
 
-1. **Installation:** Downloads OpenAI SDK, FAISS, and other dependencies
+1. **Installation:** Downloads Google gen-ai SDK, FAISS, and other dependencies
 2. **Indexing:** When you `add` a file, it's automatically:
    - Split into chunks
-   - Embedded using OpenAI's embedding model
+   - Embedded using Google's embedding model
    - Indexed using FAISS for fast retrieval
 3. **Q&A:** When you `ask` a question:
    - Your question is embedded
@@ -316,8 +329,8 @@ make sanity
 
 ### Troubleshooting
 
-**"OPENAI_API_KEY not set"**
-- Set your API key: `export OPENAI_API_KEY="sk-..."`
+**"GOOGLE_API_KEY not found"**
+- Make sure `.env` file exists in the project root with your API key
 
 **"No documents indexed"**
 - Add documents first using the `add` command

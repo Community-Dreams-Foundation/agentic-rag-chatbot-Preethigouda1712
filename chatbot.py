@@ -41,7 +41,7 @@ class RAGChatbot:
             return False
         
         print(f"\nSearching...\n")
-        answer, citations = self.rag.answer_question(question, top_k=3)
+        answer, citations = self.rag.answer_question(question, top_k=2)
         
         # Display answer
         print(f"Answer:\n{answer}\n")

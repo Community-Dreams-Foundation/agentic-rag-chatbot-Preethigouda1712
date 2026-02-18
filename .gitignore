@@ -44,7 +44,6 @@ Thumbs.db
 .env.*.local
 
 # API Keys and Secrets
-.openai_key
 secrets.json
 credentials.json
 

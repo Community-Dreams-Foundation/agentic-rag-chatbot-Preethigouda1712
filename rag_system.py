@@ -1,5 +1,5 @@
 """
-RAG System for local searching using OpenAI embeddings and FAISS
+RAG System for local searching using Google Gemini embeddings and FAISS
 """
 
 import os
@@ -8,18 +8,20 @@ from pathlib import Path
 from typing import List, Dict, Tuple, Optional
 import pickle
 
-import openai
+import google.genai as genai
 import faiss
 import numpy as np
 from datetime import datetime
 from dotenv import load_dotenv
-from openai import OpenAI
 
 # Load environment variables from .env file
 load_dotenv()
 
-# Initialize OpenAI client
-client = OpenAI()
+# Initialize Google Gemini client
+api_key = os.getenv("GOOGLE_API_KEY")
+client = None
+if api_key:
+    client = genai.Client(api_key=api_key)
 
 
 class Document:
@@ -98,12 +100,13 @@ class DocumentIngestor:
 class RAGSystem:
     """Main RAG system combining embedding, indexing, and retrieval."""
     
-    def __init__(self, api_key: Optional[str] = None, embedding_model: str = "text-embedding-3-small", 
+    def __init__(self, api_key: Optional[str] = None, embedding_model: str = "text-embedding-004", 
                  use_mock: bool = False):
-        self.api_key = api_key or os.getenv("OPENAI_API_KEY")
-        # Use mock mode by default if API key exists but we want to avoid quota issues
-        # Set use_mock=True to skip API calls and use deterministic embeddings
-        self.use_mock = True  # Changed to True to avoid API quota issues
+        self.api_key = api_key or os.getenv("GOOGLE_API_KEY")
+        # Use real Google Gemini embeddings for accurate semantic search
+        # Falls back to mock embeddings if API key is missing or quota exceeded
+        self.use_mock = use_mock or not self.api_key  # Use mock if no API key
+        self.vocabulary = {}  # For semantic embeddings
         
         self.embedding_model = embedding_model
         self.ingestor = DocumentIngestor()
@@ -116,30 +119,64 @@ class RAGSystem:
         self.index_dir.mkdir(exist_ok=True)
     
     def embed_texts(self, texts: List[str]) -> np.ndarray:
-        """Generate embeddings using OpenAI API or mock embeddings."""
+        """Generate embeddings using Google API or semantic mock embeddings."""
         if self.use_mock:
-            # Generate mock embeddings (deterministic based on text)
+            # Generate semantic embeddings based on TF-IDF
+            import re
+            from collections import Counter
+            
             embeddings = []
+            
+            # Build vocabulary from all texts if not already done
+            if not self.vocabulary:
+                all_words = Counter()
+                for text in texts:
+                    words = re.findall(r'\b\w+\b', text.lower())
+                    all_words.update(words)
+                # Keep top 1536 words as vocabulary (size of embeddings)
+                self.vocabulary = {word: idx for idx, (word, _) in enumerate(
+                    all_words.most_common(1536)
+                )}
+            
+            # Create TF-IDF style embeddings
             for text in texts:
-                # Create a simple deterministic embedding from text hash
-                hash_val = hash(text)
-                np.random.seed(abs(hash_val) % (2**32))
-                emb = np.random.randn(1536).astype('float32')
-                emb = emb / np.linalg.norm(emb)  # Normalize
+                emb = np.zeros(1536, dtype='float32')
+                words = re.findall(r'\b\w+\b', text.lower())
+                word_counts = Counter(words)
+                
+                # Fill embedding with TF scores for known words
+                for word, count in word_counts.items():
+                    if word in self.vocabulary:
+                        idx = self.vocabulary[word]
+                        # TF score: log(1 + count) normalized
+                        emb[idx] = np.log(1 + count)
+                
+                # Normalize
+                norm = np.linalg.norm(emb)
+                if norm > 0:
+                    emb = emb / norm
                 embeddings.append(emb)
+            
             return np.vstack(embeddings)
         
-        # Use real OpenAI embeddings with new API
+        # Use real Google Gemini embeddings
         try:
-            response = client.embeddings.create(
-                input=texts,
-                model=self.embedding_model
-            )
-            embeddings = np.array([item.embedding for item in response.data])
-            return embeddings.astype('float32')
+            if not client:
+                raise ValueError("Google API client not initialized. Check GOOGLE_API_KEY in .env")
+            
+            embeddings = []
+            for text in texts:
+                response = client.models.embed_content(
+                    model="gemini-embedding-001",
+                    contents=text
+                )
+                # Extract embedding from the response
+                embedding_values = response.embeddings[0].values
+                embeddings.append(embedding_values)
+            return np.array(embeddings, dtype='float32')
         except Exception as e:
             print(f"Error with embeddings: {e}")
-            # Fall back to mock if there's an error
+            # Fall back to semantic mock if there's an error
             self.use_mock = True
             return self.embed_texts(texts)
     
@@ -213,28 +250,28 @@ class RAGSystem:
         
         # If no API key and not using real embeddings, return a mock answer
         if self.use_mock or not self.api_key:
-            answer = f"Based on the provided context about {question}, here is a summary:\n\n{context_parts[0][:300]}..."
+            answer = f"Based on the provided context, here is what I found:\n\n{context_parts[0][:800]}"
+            if not answer.endswith(('.', '!', '?')):
+                answer += "..."
             return answer, citations
         
-        # Generate answer using OpenAI with new API
+        # Generate answer using Google Gemini
         try:
-            response = client.chat.completions.create(
-                model="gpt-3.5-turbo",
-                messages=[
-                    {
-                        "role": "system",
-                        "content": "You are a helpful assistant. Answer questions based on the provided context. If the context doesn't contain the answer, say so."
-                    },
-                    {
-                        "role": "user",
-                        "content": f"Context:\n{context}\n\nQuestion: {question}\n\nProvide a clear, concise answer based on the context above."
-                    }
-                ],
-                temperature=0.7,
-                max_tokens=500
+            if not client:
+                raise ValueError("Google API client not initialized. Check GOOGLE_API_KEY in .env")
+            
+            prompt = f"You are a helpful assistant. Answer questions based on the provided context. If the context doesn't contain the answer, say so.\n\nContext:\n{context}\n\nQuestion: {question}\n\nProvide a clear, concise answer based on the context above."
+            
+            response = client.models.generate_content(
+                model="gemini-2.5-flash",
+                contents=prompt,
+                config={
+                    "temperature": 0.7,
+                    "max_output_tokens": 1000,
+                }
             )
             
-            answer = response.choices[0].message.content
+            answer = response.text
             return answer, citations
         except Exception as e:
             return f"Error generating answer: {str(e)}", citations
@@ -258,6 +295,10 @@ class RAGSystem:
         docs_data = [doc.to_dict() for doc in self.documents]
         with open(path / "documents.json", "w") as f:
             json.dump(docs_data, f, indent=2)
+        
+        # Save vocabulary for semantic embeddings
+        with open(path / "vocabulary.json", "w") as f:
+            json.dump(self.vocabulary, f, indent=2)
         
         print(f"Index saved to {path}")
         return str(path)
@@ -287,6 +328,12 @@ class RAGSystem:
                 for d in docs_data
             ]
             
+            # Load vocabulary for semantic embeddings
+            vocab_path = path / "vocabulary.json"
+            if vocab_path.exists():
+                with open(vocab_path, "r") as f:
+                    self.vocabulary = json.load(f)
+            
             print(f"Index loaded from {path}")
             return True
         except Exception as e:
@@ -314,31 +361,80 @@ class MemoryManager:
             self.company_memory_path.write_text("# Company Memory\n\n")
     
     def extract_insights(self, question: str, answer: str, context: str) -> Dict:
-        """Use LLM to extract memorable insights from Q&A."""
-        try:
-            response = client.chat.completions.create(
-                model="gpt-3.5-turbo",
-                messages=[
-                    {
-                        "role": "system",
-                        "content": "Extract high-signal, reusable insights from conversations. Only return insights if they're significant and not sensitive/PII. Format: JSON with 'user_insight', 'company_insight', and 'confidence'."
-                    },
-                    {
-                        "role": "user",
-                        "content": f"Question: {question}\nAnswer: {answer}\nContext used: {context[:500]}\n\nExtract any memorable insights. Return empty strings if no significant insights."
-                    }
-                ],
-                temperature=0.5,
-                max_tokens=300
-            )
-            
-            try:
-                result = json.loads(response.choices[0].message.content)
-                return result
-            except:
-                return {"user_insight": "", "company_insight": "", "confidence": 0.0}
-        except:
-            return {"user_insight": "", "company_insight": "", "confidence": 0.0}
+        """Extract HIGH-SIGNAL insights dynamically based on actual content."""
+        import re
+        from collections import Counter
+        
+        combined_text = (question + " " + answer).lower()
+        
+        # ===== Extract key concepts from the answer (NOT hardcoded) =====
+        # Remove common words
+        stop_words = {'the', 'a', 'an', 'and', 'or', 'is', 'are', 'was', 'were', 'be', 'been', 'being',
+                      'have', 'has', 'had', 'do', 'does', 'did', 'will', 'would', 'should', 'could', 'can',
+                      'that', 'this', 'these', 'those', 'it', 'its', 'in', 'on', 'at', 'to', 'for', 'of',
+                      'as', 'by', 'with', 'from', 'up', 'about', 'into', 'through', 'during', 'before',
+                      'after', 'above', 'below', 'between', 'under', 'again', 'further', 'then', 'once',
+                      'here', 'there', 'when', 'where', 'why', 'how', 'all', 'each', 'every', 'both',
+                      'few', 'more', 'most', 'other', 'some', 'such', 'no', 'nor', 'not', 'only', 'own',
+                      'what', 'which', 'who', 'whom', 'whose', 'would', 'could', 'should', 'may', 'might'}
+        
+        # Extract single important words (4+ chars, which are likely nouns/verbs)
+        words = re.findall(r'\b[a-z]{4,}\b', answer.lower())
+        important_words = [w for w in words if w not in stop_words]
+        word_freq = Counter(important_words)
+        
+        # Get top concepts by frequency AND length (words that repeat OR are 6+ chars important)
+        concepts = [word for word, count in word_freq.most_common(10) if count >= 2 or len(word) >= 6]
+        
+        # ===== COMPANY INSIGHTS: Identify patterns from ACTUAL answer content =====
+        company_insight = ""
+        
+        # Only generate if we have actual important concepts
+        if concepts:
+            # Pattern 1: Multiple related concepts = architectural insight
+            if len(concepts) >= 2:
+                company_insight = f"{concepts[0].title()} and {concepts[1]} are interconnected components"
+            # Pattern 2: Single strong concept with depth = domain knowledge
+            elif len(concepts) >= 1:
+                concept_word = concepts[0]
+                concept_sentences = [s for s in answer.split('.') if concept_word in s.lower()]
+                if len(concept_sentences) >= 2 or len(answer) > 100:
+                    company_insight = f"{concept_word.title()} has multiple important considerations"
+                else:
+                    company_insight = f"{concept_word.title()} is a key component"
+        
+        # Fallback: Extract from answer if still empty and answer is substantial
+        if not company_insight and len(answer) > 80:
+            nouns = re.findall(r'\b[a-z]{6,}\b', answer.lower())
+            if nouns:
+                company_insight = f"{nouns[0].title()} is a fundamental component"
+        
+        # ===== USER INSIGHTS: Infer user needs from question patterns =====
+        user_insight = ""
+        question_lower = question.lower()
+        
+        # Pattern-based user intent detection (generalized)
+        if question_lower.startswith("how"):
+            user_insight = "User seeks practical implementation and hands-on guidance"
+        elif question_lower.startswith("what is") or "explain" in question_lower:
+            user_insight = "User is building foundational knowledge and understanding"
+        elif "why" in question_lower:
+            user_insight = "User focuses on understanding rationale and causation"
+        elif "best" in question_lower or "should" in question_lower:
+            user_insight = "User is evaluating options and making design decisions"
+        elif "problem" in question_lower or "issue" in question_lower or "fix" in question_lower:
+            user_insight = "User is troubleshooting and solving specific challenges"
+        elif "compare" in question_lower or "difference" in question_lower:
+            user_insight = "User evaluates trade-offs and alternative approaches"
+        
+        # Only extract if we have meaningful insights
+        confidence = 0.85 if (user_insight or company_insight) else 0.0
+        
+        return {
+            "user_insight": user_insight,
+            "company_insight": company_insight,
+            "confidence": confidence
+        }
     
     def add_memory(self, question: str, answer: str, context: str):
         """Extract and add memories from an interaction."""

@@ -71,7 +71,7 @@ def ask_question():
             return jsonify({'error': 'No documents indexed. Please add documents first.'}), 400
         
         # Get answer with citations
-        answer, citations = rag.answer_question(question, top_k=3)
+        answer, citations = rag.answer_question(question, top_k=2)
         
         # Try to extract memory
         try:

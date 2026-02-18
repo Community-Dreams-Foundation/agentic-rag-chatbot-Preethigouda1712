@@ -6,8 +6,8 @@
 # Install dependencies
 python -m pip install -r requirements.txt
 
-# Set OpenAI API key (optional for testing)
-export OPENAI_API_KEY="sk-..."  # On Unix/Mac or setx OPENAI_API_KEY "sk-..." on Windows
+# Set Google API key (required for real embeddings)
+export GOOGLE_API_KEY="your-key-here"  # On Unix/Mac or setx GOOGLE_API_KEY "your-key-here" on Windows
 ```
 
 ## Running the Chatbot
@@ -115,7 +115,7 @@ python scripts/verify_output.py artifacts/sanity_output.json
 
 ✅ **Feature A - RAG + Citations**
 - Document ingestion and chunking
-- OpenAI-powered embeddings
+- Google Gemini-powered embeddings
 - FAISS-based retrieval
 - Grounded answers with citations
 
@@ -135,21 +135,21 @@ rag.ingestor.chunk_size = 1000  # Default is 500
 
 ### Change number of retrieved results
 ```python
-answer, citations = rag.answer_question(question, top_k=5)  # Default is 3
+answer, citations = rag.answer_question(question, top_k=5)  # Default is 2
 ```
 
-### Use with OpenAI API key
+### Use with Google API key
 ```bash
-export OPENAI_API_KEY="sk-..."
+export GOOGLE_API_KEY="your-key-here"
 python chatbot.py
-# Now uses real OpenAI embeddings and GPT-3.5-turbo
+# Now uses real Google Gemini embeddings
 ```
 
 ## Troubleshooting
 
 | Issue | Solution |
 |-------|----------|
-| "OPENAI_API_KEY not set" | Set API key: `export OPENAI_API_KEY="sk-..."` |
+| "GOOGLE_API_KEY not set" | Set API key: `export GOOGLE_API_KEY="your-key-here"` |
 | "No documents indexed" | Add documents first using `add` command |
 | Slow first query | First embedding takes time; subsequent queries are faster |
 | ImportError | Run `pip install -r requirements.txt` |

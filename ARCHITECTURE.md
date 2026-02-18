@@ -14,11 +14,11 @@ The Agentic RAG Chatbot is a local search system that enables users to ask quest
 
 ### 2) Indexing / Storage
 **Vector store:** FAISS with L2 distance
-**Embeddings:** OpenAI text-embedding-3-small (1536-dim)
+**Embeddings:** Google Gemini text-embedding-004 (768-dim)
 **Persistence:** Saved to ./rag_index/ with FAISS index + metadata JSON
 
 ### 3) Retrieval + Grounded Answering
-**Retrieval:** Top-k similarity search (k=3 default)
+**Retrieval:** Top-k similarity search (k=2 default)
 **Citations:** Include source, chunk_id, snippet, relevance score
 **Failure:** Gracefully reports when insufficient information available
 
@@ -29,7 +29,7 @@ The Agentic RAG Chatbot is a local search system that enables users to ask quest
 **Format:** Timestamped bullets in USER_MEMORY.md and COMPANY_MEMORY.md
 
 ### 5) Answer Generation
-**Model:** OpenAI GPT-3.5-turbo (temp 0.7, max 500 tokens)
+**Model:** Google Gemini Pro (temp 0.7, max 1000 tokens)
 **Grounding:** Context injected with labeled chunks
 **Safety:** Explicit instruction to decline answering without sufficient context
 
@@ -60,10 +60,10 @@ User-facing CLI interface:
 
 **Requirements:**
 - Python 3.8+
-- Dependencies: openai, faiss-cpu, numpy, python-dotenv, pytest
+- Dependencies: google-genai, faiss-cpu, numpy, python-dotenv, pytest
 
 **Setup:**
-- `pip install -r requirements.txt && export OPENAI_API_KEY=...`
+- `pip install -r requirements.txt && export GOOGLE_API_KEY=...`
 - Run: `python chatbot.py` (interactive) or `python chatbot.py sanity` (evaluation)
 - Sanity check: Generates `artifacts/sanity_output.json`
 

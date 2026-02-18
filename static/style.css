@@ -207,11 +207,13 @@ body {
 }
 
 .message-content {
-    display: inline-block;
+    display: block;
     padding: 12px 16px;
     border-radius: 8px;
-    max-width: 70%;
+    max-width: 90%;
     word-wrap: break-word;
+    white-space: pre-wrap;
+    overflow-wrap: break-word;
 }
 
 .message-user .message-content {
@@ -231,6 +233,9 @@ body {
     margin: 10px 0;
     font-size: 14px;
     line-height: 1.6;
+    word-wrap: break-word;
+    overflow-wrap: break-word;
+    white-space: normal;
 }
 
 .citations {
@@ -304,6 +309,8 @@ body {
 
 #askBtn {
     padding: 12px 24px;
+    flex-shrink: 0;
+    width: auto;
 }
 
 /* Modal */
