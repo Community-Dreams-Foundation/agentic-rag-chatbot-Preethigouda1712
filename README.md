@@ -157,11 +157,9 @@ bash scripts/sanity_check.sh
 
 ### 3) Video Walkthrough Link (Required)
 
-Add your video link here:
+Add your video link here: https://drive.google.com/file/d/1rcF_DtoqfJ6eyqXyyCN0_a9Ai1Qu4FzD/view?usp=drive_link
 
-## Video Walkthrough
 
-[Add your video walkthrough link here - e.g., YouTube, Loom, or similar]
 
 ## 4) Important
 Submissions missing the Participant Info block may be deprioritized during review.
