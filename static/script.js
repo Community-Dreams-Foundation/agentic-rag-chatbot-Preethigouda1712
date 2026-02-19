@@ -43,9 +43,9 @@ async function loadStatus() {
 
         const statusInfo = document.getElementById('statusInfo');
         statusInfo.innerHTML = `
-            <div><strong>Documents:</strong> ${data.total_documents}</div>
-            <div><strong>Sources:</strong> ${data.unique_sources}</div>
-            ${data.sources.length > 0 ? `<div><strong>Files:</strong><br>${data.sources.join('<br>')}</div>` : ''}
+            <div><strong>Document chunks:</strong> ${data.total_documents}</div>
+            <div><strong>Total Source files:</strong> ${data.unique_sources}</div>
+            ${data.sources.length > 0 ? `<div><strong>List of Files:</strong><br>${data.sources.join('<br>')}</div>` : ''}
         `;
     } catch (error) {
         console.error('Error loading status:', error);
